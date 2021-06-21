@@ -55,10 +55,8 @@ export class Commands {
   toggleActiveEditor() {
     this.emitter.emit('should-toggle-active-editor')
   }
-  // @deprecated
-  showDebug(...args: Parameters<typeof showDebug>) {
-    showDebug(...args)
-  }
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   onShouldLint(callback: (...args: Array<any>) => any): Disposable {
     return this.emitter.on('should-lint', callback)
   }
@@ -71,18 +69,22 @@ export class Commands {
   onShouldToggleLinter(callback: (...args: Array<any>) => any): Disposable {
     return this.emitter.on('should-toggle-linter', callback)
   }
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+
   dispose() {
     this.subscriptions.dispose()
   }
 }
 
-export function showDebug(standardLinters: Array<Linter>, indieLinters: Array<IndieDelegate>, uiProviders: Array<UI>) {
+export async function showDebug(standardLinters: Array<Linter>, indieLinters: Array<IndieDelegate>, uiProviders: Array<UI>) {
   if (!manifest) {
     manifest = require('../package.json')
   }
 
   const textEditor = atom.workspace.getActiveTextEditor()
-  if (textEditor === undefined) return
+  if (textEditor === undefined) {
+    return
+  }
   const textEditorScopes = Helpers.getEditorCursorScopes(textEditor)
   const sortedLinters = standardLinters.slice().sort(sortByName)
   const sortedIndieLinters = indieLinters.slice().sort(sortByName)
@@ -100,7 +102,7 @@ export function showDebug(standardLinters: Array<Linter>, indieLinters: Array<In
   const ignoreGlob = atom.config.get('linter.ignoreGlob')
   const ignoreVCSIgnoredPaths = atom.config.get('core.excludeVcsIgnoredPaths')
   const disabledLinters = atom.config.get('linter.disabledProviders').map(formatItem).join('\n')
-  const filePathIgnored = Helpers.isPathIgnored(textEditor.getPath(), ignoreGlob, ignoreVCSIgnoredPaths)
+  const filePathIgnored = await Helpers.isPathIgnored(textEditor.getPath(), ignoreGlob, ignoreVCSIgnoredPaths)
 
   atom.notifications.addInfo('Linter Debug Info', {
     detail: [

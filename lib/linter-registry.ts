@@ -33,6 +33,9 @@ export default class LinterRegistry {
         this.lintPreviewTabs = lintPreviewTabs
       }),
       atom.config.observe('linter.disabledProviders', disabledProviders => {
+        if (disabledProviders.length !== 0) {
+          console.warn(`Linter package: disabled linter providers: ${disabledProviders}`)
+        }
         this.disabledProviders = disabledProviders
       }),
     )
@@ -70,8 +73,8 @@ export default class LinterRegistry {
     if (
       (onChange && !this.lintOnChange) || // Lint-on-change mismatch
       // Ignored by VCS, Glob, or simply not saved anywhere yet
-      Helpers.isPathIgnored(editor.getPath(), this.ignoreGlob, this.ignoreVCS) ||
-      (!this.lintPreviewTabs && atom.workspace.getActivePane().getPendingItem() === editor) // Ignore Preview tabs
+      (!this.lintPreviewTabs && atom.workspace.getActivePane().getPendingItem() === editor) || // Ignore Preview tabs
+      (await Helpers.isPathIgnored(editor.getPath(), this.ignoreGlob, this.ignoreVCS))
     ) {
       return false
     }
@@ -105,7 +108,7 @@ export default class LinterRegistry {
               return
             }
 
-            if (messages === null) {
+            if (messages === null || messages === undefined) {
               // NOTE: Do NOT update the messages when providers return null
               return
             }
@@ -159,6 +162,8 @@ export default class LinterRegistry {
     await Promise.all(promises)
     return true
   }
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   onDidUpdateMessages(callback: (...args: Array<any>) => any): Disposable {
     return this.emitter.on('did-update-messages', callback)
   }
@@ -168,6 +173,8 @@ export default class LinterRegistry {
   onDidFinishLinting(callback: (...args: Array<any>) => any): Disposable {
     return this.emitter.on('did-finish-linting', callback)
   }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
   dispose() {
     this.activeNotifications.forEach(notification => notification.dismiss())
     this.activeNotifications.clear()
